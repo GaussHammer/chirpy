@@ -18,6 +18,7 @@ type User struct {
 	Email        string    `json:"email"`
 	AccessToken  string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
+	IsChirpyRed  bool      `json:"is_chirpy_red"`
 }
 
 func newUser(w http.ResponseWriter, r *http.Request, apiCfg *apiConfig) {
@@ -50,10 +51,11 @@ func newUser(w http.ResponseWriter, r *http.Request, apiCfg *apiConfig) {
 	}
 
 	user := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
+		ID:          dbUser.ID,
+		CreatedAt:   dbUser.CreatedAt,
+		UpdatedAt:   dbUser.UpdatedAt,
+		Email:       dbUser.Email,
+		IsChirpyRed: dbUser.IsChirpyRed,
 	}
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)

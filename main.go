@@ -18,6 +18,7 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	jwtSecret      string
+	polkaKey       string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -38,10 +39,15 @@ func main() {
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is required")
 	}
+	polkaKey := os.Getenv("POLKA_KEY")
+	if polkaKey == "" {
+		log.Fatal("POLKA_KEY environment variable is required")
+	}
 	apiCfg := apiConfig{
 		dbQueries: database.New(db),
 		platform:  os.Getenv("PLATFORM"),
 		jwtSecret: jwtSecret,
+		polkaKey:  polkaKey,
 	}
 
 	mux := http.NewServeMux()
@@ -82,6 +88,9 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{chirpID}", func(w http.ResponseWriter, r *http.Request) {
 		selectChirp(w, r, &apiCfg)
 	})
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", func(w http.ResponseWriter, r *http.Request) {
+		deleteChirp(w, r, &apiCfg)
+	})
 	mux.HandleFunc("POST /api/users", func(w http.ResponseWriter, r *http.Request) {
 		newUser(w, r, &apiCfg)
 	})
@@ -93,6 +102,12 @@ func main() {
 	})
 	mux.HandleFunc("POST /api/revoke", func(w http.ResponseWriter, r *http.Request) {
 		userRevoke(w, r, &apiCfg)
+	})
+	mux.HandleFunc("POST /api/polka/webhooks", func(w http.ResponseWriter, r *http.Request) {
+		polkaWebhooks(w, r, &apiCfg)
+	})
+	mux.HandleFunc("PUT /api/users", func(w http.ResponseWriter, r *http.Request) {
+		userUpdate(w, r, &apiCfg)
 	})
 	server := http.Server{
 		Addr:    ":8080",

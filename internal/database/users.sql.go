@@ -7,6 +7,9 @@ package database
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -18,7 +21,7 @@ VALUES(
     $1,
     $2
 )
-RETURNING id, created_at, updated_at, email, hashed_password
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -35,6 +38,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -49,7 +53,7 @@ func (q *Queries) DeleteUsers(ctx context.Context) error {
 }
 
 const selectUserByEmail = `-- name: SelectUserByEmail :one
-SELECT id, created_at, updated_at, email, hashed_password
+SELECT id, created_at, updated_at, email, hashed_password, is_chirpy_red
 FROM users
 WHERE email = $1
 `
@@ -63,6 +67,54 @@ func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, er
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
+}
+
+const selectUserById = `-- name: SelectUserById :one
+SELECT users.created_at, users.updated_at, refresh_tokens.token FROM users
+INNER JOIN refresh_tokens ON users.id = refresh_tokens.user_id
+WHERE users.id = $1
+`
+
+type SelectUserByIdRow struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Token     string
+}
+
+func (q *Queries) SelectUserById(ctx context.Context, id uuid.UUID) (SelectUserByIdRow, error) {
+	row := q.db.QueryRowContext(ctx, selectUserById, id)
+	var i SelectUserByIdRow
+	err := row.Scan(&i.CreatedAt, &i.UpdatedAt, &i.Token)
+	return i, err
+}
+
+const updateUserById = `-- name: UpdateUserById :exec
+UPDATE users
+SET email = $1, hashed_password = $2
+WHERE id = $3
+`
+
+type UpdateUserByIdParams struct {
+	Email          string
+	HashedPassword string
+	ID             uuid.UUID
+}
+
+func (q *Queries) UpdateUserById(ctx context.Context, arg UpdateUserByIdParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserById, arg.Email, arg.HashedPassword, arg.ID)
+	return err
+}
+
+const upgradeChirpyRed = `-- name: UpgradeChirpyRed :exec
+UPDATE users
+SET is_chirpy_red = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) UpgradeChirpyRed(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, upgradeChirpyRed, id)
+	return err
 }

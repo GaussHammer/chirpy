@@ -26,4 +26,5 @@ func userRevoke(w http.ResponseWriter, r *http.Request, cfg *apiConfig) {
 		return
 	}
 	w.WriteHeader(204)
+	return
 }

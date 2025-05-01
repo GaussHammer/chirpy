@@ -83,6 +83,7 @@ func userLogin(w http.ResponseWriter, r *http.Request, cfg *apiConfig) {
 		Email:        user.Email,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		IsChirpyRed:  user.IsChirpyRed,
 	}
 	dat, err := json.Marshal(returnUser)
 	if err != nil {
